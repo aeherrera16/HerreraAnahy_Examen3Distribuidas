@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: polizas-backend
+  labels:
+    app: polizas-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: polizas-backend
+  template:
+    metadata:
+      labels:
+        app: polizas-backend
+    spec:
+      containers:
+      - name: backend
+        image: polizas-backend:v1
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: MYSQL_HOST
+          value: "mysql8"
+        - name: MYSQL_PORT
+          value: "3306"
+        - name: MYSQL_DATABASE
+          value: "polizas_db"
+        - name: MYSQL_USER
+          value: "polizas_user"
+        - name: MYSQL_PASSWORD
+          value: "polizas123"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /api/clientes
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/clientes
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 15
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: polizas-backend
+spec:
+  selector:
+    app: polizas-backend
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: LoadBalancer

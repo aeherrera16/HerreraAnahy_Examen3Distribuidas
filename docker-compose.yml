@@ -1,0 +1,122 @@
+# ===================================================================
+# Docker Compose - Sistema Distribuido de Pólizas
+# Incluye: MySQL, PostgreSQL, Backend Spring Boot, Frontend React
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # ===================================================================
+  # Base de Datos MySQL
+  # ===================================================================
+  mysql:
+    image: mysql:8.0
+    container_name: polizas-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: polizas_db
+      MYSQL_USER: polizas_user
+      MYSQL_PASSWORD: polizas123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-scripts/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - polizas-network
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ===================================================================
+  # Base de Datos PostgreSQL
+  # ===================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: polizas-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: polizas_audit_db
+      POSTGRES_USER: polizas_user
+      POSTGRES_PASSWORD: polizas123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts/postgres:/docker-entrypoint-initdb.d
+    networks:
+      - polizas-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U polizas_user -d polizas_audit_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ===================================================================
+  # Backend Spring Boot
+  # ===================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: polizas-backend
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: polizas_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root123
+      SERVER_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - polizas-network
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/api/clientes" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ===================================================================
+  # Frontend React
+  # ===================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: polizas-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - polizas-network
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080/api
+
+# ===================================================================
+# Volumes
+# ===================================================================
+volumes:
+  mysql_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# ===================================================================
+# Networks
+# ===================================================================
+networks:
+  polizas-network:
+    driver: bridge

@@ -1,0 +1,18 @@
+# ===================================================================
+# ConfigMap - Configuración de la aplicación
+# ===================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: polizas-config
+  namespace: polizas-system
+  labels:
+    app: polizas
+data:
+  MYSQL_HOST: "mysql-service"
+  MYSQL_PORT: "3306"
+  MYSQL_DATABASE: "polizas_db"
+  SERVER_PORT: "8080"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "polizas_audit_db"

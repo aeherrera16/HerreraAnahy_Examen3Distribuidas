@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres15
+  labels:
+    app: postgres15
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres15
+  template:
+    metadata:
+      labels:
+        app: postgres15
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "auditoria_db"
+        - name: POSTGRES_USER
+          value: "audit_user"
+        - name: POSTGRES_PASSWORD
+          value: "audit123"
+        volumeMounts:
+        - name: data-postgres
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: data-postgres
+        hostPath:
+          path: /var/lib/postgresql/data
+          type: DirectoryOrCreate
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres15
+spec:
+  selector:
+    app: postgres15
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
