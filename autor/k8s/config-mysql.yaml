@@ -1,0 +1,72 @@
+# ============================================
+# MySQL 8 - Deployment para Kubernetes
+# Los pods son efímeros - si fallan, K8s los recrea
+# ============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql8
+  labels:
+    app: mysql8
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql8
+  template:
+    metadata:
+      labels:
+        app: mysql8
+    spec:
+      containers:
+      - name: mysql8
+        image: mysql:8
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "abcd"
+        - name: MYSQL_DATABASE
+          value: "sisdb2025-autor"
+        - name: MYSQL_USER
+          value: "AppRoot"
+        - name: MYSQL_PASSWORD
+          value: "abcd"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        # ============================================
+        # VolumeMount - Monta el volumen en el contenedor
+        # ============================================
+        volumeMounts:
+        - name: data-mysql
+          mountPath: /var/lib/mysql
+      # ============================================
+      # Volume - Define el almacenamiento persistente
+      # hostPath: Usa un directorio del nodo host
+      # ============================================
+      volumes:
+      - name: data-mysql
+        hostPath:
+          path: /var/lib/mysql
+          type: DirectoryOrCreate
+---
+# ============================================
+# MySQL 8 - Service (ClusterIP)
+# Permite que otros pods se conecten a MySQL
+# ============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-sisdb2025-autor
+spec:
+  type: ClusterIP
+  selector:
+    app: mysql8
+  ports:
+  - port: 3306
+    targetPort: 3306

@@ -1,0 +1,63 @@
+# ============================================
+# Microservicio Autor - Deployment para Kubernetes
+# Los pods son efímeros - si fallan, K8s los recrea
+# ============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: micro-autor
+  labels:
+    app: micro-autor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: micro-autor
+  template:
+    metadata:
+      labels:
+        app: micro-autor
+    spec:
+      containers:
+      - name: micro-autor
+        # NOTA: Cambia esta imagen por tu imagen de Docker Hub
+        # Ejemplo: tunombre/micro-autor:v1
+        image: micro-autor:v1
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8001
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "docker"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql-sisdb2025-autor:3306/sisdb2025-autor"
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "AppRoot"
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: "abcd"
+        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+          value: "update"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+# ============================================
+# Microservicio Autor - Service
+# NodePort para acceder desde fuera del cluster
+# ============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: micro-autor-service
+spec:
+  type: NodePort
+  selector:
+    app: micro-autor
+  ports:
+  - port: 8001
+    targetPort: 8001
+    nodePort: 30001
