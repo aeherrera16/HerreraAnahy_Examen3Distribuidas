@@ -1,9 +1,4 @@
-# ===================================================================
-# Dockerfile - Frontend React
-# Multi-stage build para producción con Nginx
-# ===================================================================
-
-# Stage 1: Build
+# Etapa 1: Construir la aplicación React
 FROM node:18-alpine AS builder
 
 WORKDIR /app
@@ -12,28 +7,23 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instalar dependencias
-RUN npm ci --silent
+RUN npm install --legacy-peer-deps
 
 # Copiar código fuente
 COPY . .
 
-# Build de producción
+# Construir la aplicación
 RUN npm run build
 
-# Stage 2: Production con Nginx
+# Etapa 2: Servir con Nginx
 FROM nginx:alpine
 
 # Copiar configuración de Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copiar build de React
+# Copiar archivos construidos
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Exponer puerto
 EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD wget -q --spider http://localhost/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
